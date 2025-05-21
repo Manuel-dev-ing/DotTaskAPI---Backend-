@@ -22,6 +22,7 @@ namespace DotTaskAPI.Controllers
         public async Task<ActionResult<List<TareaDTO>>> get(int proyectoId)
         {
 
+
             var entidad = await repositorioTareas.existeProyecto(proyectoId);
 
             if (!entidad)
@@ -37,12 +38,19 @@ namespace DotTaskAPI.Controllers
         //obtiene una tarea por su id
 
         [HttpGet("{id:int}", Name = "ObtenerTarea")]
-        public async Task<ActionResult<TareaDTO>> Get(int id)
+        public async Task<ActionResult<TareaDTO>> Get(int id, int proyectoId)
         {
 
             if (id == 0)
             {
                 return BadRequest($"El id: {id} no es valido");
+            }
+
+            var tarea_resultado = await repositorioTareas.obtieneTareaPorId(id);
+
+            if (proyectoId != tarea_resultado.IdProyecto)
+            {
+                return BadRequest();
             }
 
             var tarea = await repositorioTareas.obtieneTareaPorId(id);
@@ -105,6 +113,10 @@ namespace DotTaskAPI.Controllers
 
             var tarea_resultado = await repositorioTareas.obtieneTareaPorId(id);
 
+            if (proyectoId != tarea_resultado.IdProyecto)
+            {
+                return BadRequest();
+            }
 
             var tarea = new Tarea()
             {
@@ -137,6 +149,12 @@ namespace DotTaskAPI.Controllers
             }
 
             var tarea_resultado = await repositorioTareas.obtieneTareaPorId(id);
+
+            if (proyectoId != tarea_resultado.IdProyecto)
+            {
+                return BadRequest();
+            }
+
             var tarea = new Tarea()
             {
                 Id = id,
@@ -161,6 +179,13 @@ namespace DotTaskAPI.Controllers
             {
                 return NotFound();
             }
+            var tarea_resultado = await repositorioTareas.obtieneTareaPorId(id);
+
+            if (proyectoId != tarea_resultado.IdProyecto)
+            {
+                return BadRequest();
+            }
+
 
             var resultado = await repositorioTareas.eliminarTarea(id);
 
