@@ -12,7 +12,7 @@ namespace DotTaskAPI.Servicios
         Task<int> eliminarProyecto(int id);
         Task<ProyectoDTO> guardarProyecto(Proyecto proyecto);
         Task<ProyectoDTO> ObtenerProyectoPorId(int id);
-        Task<IEnumerable<ProyectoDTO>> obtenerProyectos();
+        Task<IEnumerable<ProyectoDTO>> obtenerProyectos(int manager);
     }
 
     public class RepositorioProyectos : IRepositorioProyectos
@@ -24,17 +24,18 @@ namespace DotTaskAPI.Servicios
             this.context = context;
         }
 
-        public async Task<IEnumerable<ProyectoDTO>> obtenerProyectos()
+        public async Task<IEnumerable<ProyectoDTO>> obtenerProyectos(int manager)
         {
             var proyectos = await context.Proyectos
-                .Include(x => x.Tareas)
+                .Where(x => x.Manager == manager)
                 .Select(x => new ProyectoDTO()
                 {
                     Id = x.Id,
                     NombreProyecto = x.NombreProyecto,
                     NombreCliente = x.NombreCliente,
                     Descripcion = x.Descripcion,
-                    Tareas = x.Tareas.Select(x => new TareaDTO()
+                    Tareas = x.Tareas
+                    .Select(x => new TareasDTO()
                     {
                         Id = x.Id,
                         Nombre = x.Nombre,
@@ -49,9 +50,10 @@ namespace DotTaskAPI.Servicios
             return proyectos;
         }
 
-        private async Task<IEnumerable<TareaDTO>> obtenerTareaDTOs()
+        private async Task<IEnumerable<TareaDTO>> obtenerTareaDTOs(int IdProyecto)
         {
             var tareasDTO = await context.Tareas
+                .Where(x => x.IdProyecto == IdProyecto)
                 .Select(x => new TareaDTO()
                 {
                     Id = x.Id,
@@ -72,10 +74,11 @@ namespace DotTaskAPI.Servicios
                 .Select(x => new ProyectoDTO()
                 {
                     Id = x.Id,
+                    Manager = (int)x.Manager,
                     NombreProyecto = x.NombreProyecto,
                     NombreCliente = x.NombreCliente,
                     Descripcion = x.Descripcion,
-                    Tareas = x.Tareas.Select(x => new TareaDTO()
+                    Tareas = x.Tareas.Select(x => new TareasDTO()
                     {
                         Id = x.Id,
                         Nombre = x.Nombre,
@@ -104,7 +107,6 @@ namespace DotTaskAPI.Servicios
                 NombreProyecto = proyecto.NombreProyecto,
                 NombreCliente = proyecto.NombreCliente,
                 Descripcion = proyecto.Descripcion,
-                Tareas = await obtenerTareaDTOs()
             };
 
             return proyectoDTO;
