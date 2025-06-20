@@ -1,6 +1,7 @@
 ﻿using DotTaskAPI.DTOs;
 using DotTaskAPI.Entidades;
 using DotTaskAPI.Servicios;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DotTaskAPI.Controllers
@@ -64,6 +65,7 @@ namespace DotTaskAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "manager")]
         public async Task<ActionResult> post(int proyectoId, TareaCreacionDTO tareaCreacionDTO)
         {
             var entidad = await repositorioTareas.existeProyecto(proyectoId);
@@ -97,6 +99,8 @@ namespace DotTaskAPI.Controllers
 
 
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "manager")]
+
         public async Task<ActionResult> put(int id, int proyectoId, TareaCreacionDTO tareaCreacionDTO)
         {
             if (id <= 0)
@@ -134,6 +138,8 @@ namespace DotTaskAPI.Controllers
 
 
         [HttpPut("{id:int}/status")]
+        [Authorize(Roles = "manager")]
+
         public async Task<ActionResult> status(int id, int proyectoId, [FromBody] StatusDTO statusDTO)
         {
             if (id <= 0)
@@ -171,6 +177,8 @@ namespace DotTaskAPI.Controllers
 
 
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "manager")]
+
         public async Task<ActionResult> delete(int id, int proyectoId)
         {
             var entidad = await repositorioTareas.existeProyecto(proyectoId);

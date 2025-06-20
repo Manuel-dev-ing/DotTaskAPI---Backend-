@@ -7,7 +7,7 @@ public partial class Usuario
 {
     public int Id { get; set; }
 
-    public int? IdProyecto { get; set; }
+    public int? IdRol { get; set; }
 
     public string? Nombre { get; set; }
 
@@ -17,7 +17,9 @@ public partial class Usuario
 
     public bool? Confirmado { get; set; }
 
-    public virtual Proyecto? IdProyectoNavigation { get; set; }
+    public virtual Rol? IdRolNavigation { get; set; }
+
+    public virtual ICollection<ProyectosUsuario> ProyectosUsuarios { get; set; } = new List<ProyectosUsuario>();
 
     public virtual ICollection<Token> Tokens { get; set; } = new List<Token>();
 }

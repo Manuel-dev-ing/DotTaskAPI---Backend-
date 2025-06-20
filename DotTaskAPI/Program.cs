@@ -1,7 +1,10 @@
+using System.Security.Claims;
 using System.Text;
+using DotTaskAPI.Authorization;
 using DotTaskAPI.Entidades;
 using DotTaskAPI.Servicios;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -16,6 +19,8 @@ builder.Services.AddTransient<IRepositorioUsuarios, RepositorioUsuarios>();
 builder.Services.AddTransient<IRepositorioToken, RepositorioToken>();
 builder.Services.AddTransient<IServicioEmail, ServicioEmail>();
 builder.Services.AddTransient<IRepositorioTeam, RepositorioTeam>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
+
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
@@ -29,7 +34,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["llavejwt"]!)),
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        RoleClaimType = ClaimTypes.Role
     };
 });
 builder.Services.AddAuthorization();
@@ -52,12 +58,16 @@ builder.Services.AddCors(options =>
 });
 
 
+
+
 var app = builder.Build();
 
 //app.MapGet("/", () => "Hello World!");
-app.MapControllers();
 
 app.UseCors("nuevaPolitica");
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
 
 app.Use(async (context, next) =>
 {

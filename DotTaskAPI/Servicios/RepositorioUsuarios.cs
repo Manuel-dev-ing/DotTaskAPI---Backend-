@@ -38,9 +38,12 @@ namespace DotTaskAPI.Servicios
 
             var Email = contextAccessor.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
 
+            var Rol = contextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+
             var usuario = new UsuarioAutenticadoDTO()
             {
                 Id = Id,
+                Rol = Rol,
                 Nombre = Name,
                 Email = Email
             };
@@ -62,7 +65,9 @@ namespace DotTaskAPI.Servicios
 
         public async Task<Usuario> obtenerUsuarioPorCorreo(string correo)
         {
-            var resultado = await context.Usuarios.FirstOrDefaultAsync(x => x.Email == correo);
+            var resultado = await context.Usuarios
+                .Include(x => x.IdRolNavigation)
+                .FirstOrDefaultAsync(x => x.Email == correo);
 
             return resultado;
         }

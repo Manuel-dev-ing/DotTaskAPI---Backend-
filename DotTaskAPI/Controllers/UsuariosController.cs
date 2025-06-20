@@ -35,6 +35,7 @@ namespace DotTaskAPI.Controllers
         public async Task<ActionResult<UsuarioAutenticadoDTO>> usuario()
         {
             var usuario = await repositorioUsuarios.obtenerUsuarioAutenticado();
+           
             if (usuario == null)
             {
                 return NotFound("El usuario no Autenticado");
@@ -116,6 +117,7 @@ namespace DotTaskAPI.Controllers
         public async Task<ActionResult> login(loginDTO loginDTO)
         {
             var usuario = await repositorioUsuarios.obtenerUsuarioPorCorreo(loginDTO.Email);
+            var rol_usuario = usuario.IdRolNavigation.Nombre; 
 
             if (usuario == null)
             {
@@ -146,7 +148,7 @@ namespace DotTaskAPI.Controllers
                 return Unauthorized("Credenciales incorrectas");
             }
 
-            var Token = generarToken(usuario);
+            var Token = generarToken(usuario, rol_usuario);
 
             return Ok(Token);
 
@@ -280,13 +282,14 @@ namespace DotTaskAPI.Controllers
         }
 
         //generar json web token
-        private RespuestaAutenticacionDTO generarToken(Usuario usuario)
+        private RespuestaAutenticacionDTO generarToken(Usuario usuario, string rol_usuario)
         {
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                 new Claim(ClaimTypes.Name, usuario.Nombre),
-                new Claim(ClaimTypes.Email, usuario.Email)
+                new Claim(ClaimTypes.Email, usuario.Email),
+                new Claim(ClaimTypes.Role, rol_usuario),
             };
 
             var llave = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["llavejwt"]));

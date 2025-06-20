@@ -13,11 +13,13 @@ namespace DotTaskAPI.Controllers
     {
         private readonly IRepositorioProyectos repositorioProyectos;
         private readonly IRepositorioUsuarios repositorioUsuarios;
+        private readonly IRepositorioTeam repositorioTeam;
 
-        public ProyectosController(IRepositorioProyectos repositorioProyectos, IRepositorioUsuarios repositorioUsuarios)
+        public ProyectosController(IRepositorioProyectos repositorioProyectos, IRepositorioUsuarios repositorioUsuarios, IRepositorioTeam repositorioTeam)
         {
             this.repositorioProyectos = repositorioProyectos;
             this.repositorioUsuarios = repositorioUsuarios;
+            this.repositorioTeam = repositorioTeam;
         }
 
         [HttpGet]
@@ -35,11 +37,11 @@ namespace DotTaskAPI.Controllers
         }
 
         [HttpGet("{id:int}", Name = "ObtenerProyecto")]
-        [Authorize]
+        //[Authorize(Roles = "manager")]
         public async Task<ActionResult<ProyectoDTO>> get(int id)
         {
 
-            if (id == 0)
+            if (id <= 0)
             {
                 return BadRequest($"El id: {id} no valido");
             }
@@ -48,17 +50,13 @@ namespace DotTaskAPI.Controllers
 
             var manager_id = int.Parse(manager!);
 
-            var proyectoDTO = await repositorioProyectos.ObtenerProyectoPorId(id);
+            var proyectoDTO = await repositorioProyectos.ObtenerProyectoIdManager(id, manager_id);
 
             if (proyectoDTO is null)
             {
                 return BadRequest($"El proyecto con el id: {id} no existe");
             }
 
-            if (proyectoDTO.Manager != manager_id)
-            {
-                return NotFound("Accion no valida");
-            }
 
             return proyectoDTO;
 
@@ -70,16 +68,26 @@ namespace DotTaskAPI.Controllers
         public async Task<ActionResult> post([FromBody] ProyectosCreacionDTO proyectosCreacionDTO)
         {
             var manager = await repositorioUsuarios.obtenerInformacionJWT();
+            var manager_id = int.Parse(manager!);
 
             var proyecto = new Proyecto()
             {
-                Manager = Convert.ToInt32(manager),
                 NombreProyecto = proyectosCreacionDTO.NombreProyecto,
                 NombreCliente = proyectosCreacionDTO.NombreCliente,
                 Descripcion = proyectosCreacionDTO.Descripcion
             };
-
             var proyectoDTO = await repositorioProyectos.guardarProyecto(proyecto);
+
+            var proyecto_usuario = new ProyectosUsuario()
+            {
+                IdProyecto = proyectoDTO.Id,
+                IdUsuario = manager_id,
+                IsManager = true,
+                FechaAsignacion = DateTime.Now
+            };
+
+            await repositorioTeam.guardar(proyecto_usuario);
+
 
             return CreatedAtRoute("ObtenerProyecto", new { id = proyectoDTO.Id }, proyectoDTO);
         }
@@ -104,7 +112,9 @@ namespace DotTaskAPI.Controllers
 
             var manager_id = int.Parse(manager!);
 
-            if (proyectoDTO.Manager != manager_id)
+            var proyectoUsuario = await repositorioTeam.obtenerProyectosUsuarioPorUsuario(manager_id);
+
+            if (proyectoUsuario.IdUsuario != manager_id)
             {
                 return NotFound("Solo el manager puede actualizar un proyecto");
             }
@@ -145,7 +155,9 @@ namespace DotTaskAPI.Controllers
 
             var manager_id = int.Parse(manager!);
 
-            if (proyectoDTO.Manager != manager_id)
+            var proyectoUsuario = await repositorioTeam.obtenerProyectosUsuarioPorUsuario(manager_id);
+
+            if (proyectoUsuario.IdUsuario != manager_id)
             {
                 return NotFound("Solo el manager puede eliminar un proyecto");
             }

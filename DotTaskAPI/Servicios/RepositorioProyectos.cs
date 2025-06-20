@@ -11,6 +11,7 @@ namespace DotTaskAPI.Servicios
         Task actualizarProyecto(Proyecto proyecto);
         Task<int> eliminarProyecto(int id);
         Task<ProyectoDTO> guardarProyecto(Proyecto proyecto);
+        Task<ProyectoDTO> ObtenerProyectoIdManager(int id, int manager_id);
         Task<ProyectoDTO> ObtenerProyectoPorId(int id);
         Task<IEnumerable<ProyectoDTO>> obtenerProyectos(int manager);
     }
@@ -26,15 +27,20 @@ namespace DotTaskAPI.Servicios
 
         public async Task<IEnumerable<ProyectoDTO>> obtenerProyectos(int manager)
         {
-            var proyectos = await context.Proyectos
-                .Where(x => x.Manager == manager)
+            var proyectos = await context.ProyectosUsuarios
+                .Include(x => x.IdProyectoNavigation)
+                .Include(x => x.IdUsuarioNavigation)
+                    .ThenInclude(r => r.IdRolNavigation)
+                .Where(x => x.IdUsuario == manager)
                 .Select(x => new ProyectoDTO()
                 {
-                    Id = x.Id,
-                    NombreProyecto = x.NombreProyecto,
-                    NombreCliente = x.NombreCliente,
-                    Descripcion = x.Descripcion,
-                    Tareas = x.Tareas
+                    Id = x.IdProyectoNavigation.Id,
+                    RolNombre = x.IdUsuarioNavigation.IdRolNavigation.Nombre,
+                    Is_Manager = (bool)x.IsManager,
+                    NombreProyecto = x.IdProyectoNavigation.NombreProyecto,
+                    NombreCliente = x.IdProyectoNavigation.NombreCliente,
+                    Descripcion = x.IdProyectoNavigation.Descripcion,
+                    Tareas = x.IdProyectoNavigation.Tareas
                     .Select(x => new TareasDTO()
                     {
                         Id = x.Id,
@@ -42,7 +48,6 @@ namespace DotTaskAPI.Servicios
                         IdProyecto = (int)x.IdProyecto,
                         Descripcion = x.Descripcion,
                         Estado = x.Estado
-
                     }).ToList()
 
                 }).ToListAsync();
@@ -67,14 +72,41 @@ namespace DotTaskAPI.Servicios
             return tareasDTO;
         }
 
+        public async Task<ProyectoDTO> ObtenerProyectoIdManager(int id, int manager_id)
+        {
+            var proyectoDTO = await context.Proyectos
+                .Include(x => x.Tareas)
+                .Include(x => x.ProyectosUsuarios)
+                .Select(x => new ProyectoDTO()
+                {
+                    Id = x.Id,
+                    Is_Manager = x.ProyectosUsuarios.FirstOrDefault(x => x.IdProyecto == id && x.IdUsuario == manager_id).IsManager.Value,
+                    NombreProyecto = x.NombreProyecto,
+                    NombreCliente = x.NombreCliente,
+                    Descripcion = x.Descripcion,
+                    Tareas = x.Tareas.Select(x => new TareasDTO()
+                    {
+                        Id = x.Id,
+                        Nombre = x.Nombre,
+                        IdProyecto = (int)x.IdProyecto,
+                        Descripcion = x.Descripcion,
+                        Estado = x.Estado
+
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            return proyectoDTO;
+        }
+
         public async Task<ProyectoDTO> ObtenerProyectoPorId(int id)
         {
             var proyectoDTO = await context.Proyectos
                 .Include(x => x.Tareas)
+                .Include(x => x.ProyectosUsuarios)
                 .Select(x => new ProyectoDTO()
                 {
                     Id = x.Id,
-                    Manager = (int)x.Manager,
                     NombreProyecto = x.NombreProyecto,
                     NombreCliente = x.NombreCliente,
                     Descripcion = x.Descripcion,

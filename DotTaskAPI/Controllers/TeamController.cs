@@ -44,10 +44,10 @@ namespace DotTaskAPI.Controllers
         [Authorize]
         public async Task<ActionResult> agregarMiembroPorId(int proyectoId, [FromBody] idDTO id)
         {
-            var usuario = await repositorioTeam.buscarPorId(id.Id);
-            if (usuario == null)
+
+            if (id.Id <= 0)
             {
-                return NotFound("usuario no encontrado");
+                return BadRequest($"El id: {id} no valido");
             }
 
             var existe = await repositorioTeam.existeUsuarioProyecto(proyectoId, id.Id);
@@ -58,10 +58,14 @@ namespace DotTaskAPI.Controllers
 
             }
 
+            var proyecto_usuario = new ProyectosUsuario()
+            {
+                IdProyecto = proyectoId,
+                IdUsuario = id.Id,
+                FechaAsignacion = DateTime.Now
+            };
 
-            usuario.IdProyecto = proyectoId;
-
-            await repositorioTeam.actualizar(usuario);
+            await repositorioTeam.guardar(proyecto_usuario);
 
             return Ok("Usuario agregado correctamente");
         }
@@ -76,13 +80,12 @@ namespace DotTaskAPI.Controllers
             if (!existe)
             {
                 return NotFound("El usuario no existe en el proyecto");
-
             }
 
             var usuario = await repositorioTeam.buscarUsuarioPorProyecto(proyectoId, id);
-            usuario.IdProyecto = null;
+            //usuario.IdProyecto = null;
 
-            await repositorioTeam.actualizar(usuario);
+            await repositorioTeam.eliminar(usuario);
 
             return NoContent();
         }

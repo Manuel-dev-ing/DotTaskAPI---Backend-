@@ -6,8 +6,9 @@ namespace DotTaskAPI.DTOs
     {
 
         public int Id { get; set; }
+        public string RolNombre { get; set; }
 
-        public int Manager { get; set; }
+        public bool Is_Manager { get; set; }
 
         public string NombreProyecto { get; set; }
 
@@ -16,6 +17,7 @@ namespace DotTaskAPI.DTOs
         public string Descripcion { get; set; }
 
         public virtual IEnumerable<TareasDTO> Tareas { get; set; }
+
 
 
     }

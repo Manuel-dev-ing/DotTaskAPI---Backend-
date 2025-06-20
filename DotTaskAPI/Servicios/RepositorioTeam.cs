@@ -7,13 +7,16 @@ namespace DotTaskAPI.Servicios
 {
     public interface IRepositorioTeam
     {
-        Task actualizar(Usuario usuario);
         Task<UsuarioDTO> buscar(string email);
         Task<Usuario> buscarPorId(int id);
-        Task<Usuario> buscarUsuarioPorProyecto(int proyectoId, int id);
+        Task<ProyectosUsuario> buscarUsuarioPorProyecto(int proyectoId, int id);
+        Task eliminar(ProyectosUsuario proyectosUsuario);
         Task<bool> existeUsuarioProyecto(int proyectoId, int id);
+        Task guardar(ProyectosUsuario proyectosUsuario);
         Task<IEnumerable<UsuarioDTO>> obtenerMiembrosProyecto(int proyectoId);
+        Task<ProyectosUsuario> obtenerProyectosUsuarioPorUsuario(int id);
     }
+
     public class RepositorioTeam: IRepositorioTeam
     {
         private readonly ApplicationDbContext context;
@@ -25,14 +28,16 @@ namespace DotTaskAPI.Servicios
 
         public async Task<IEnumerable<UsuarioDTO>> obtenerMiembrosProyecto(int proyectoId)
         {
-            var usuarios = await context.Usuarios
+            var usuarios = await context.ProyectosUsuarios
+                .Include(x => x.IdProyectoNavigation)
+                .Include(x => x.IdUsuarioNavigation)
                 .Where(x => x.IdProyecto == proyectoId)
                 .Select(x => new UsuarioDTO()
                 {
                     Id = x.Id,
-                    Nombre = x.Nombre,
-                    Email = x.Email
-                
+                    Nombre = x.IdUsuarioNavigation.Nombre,
+                    Email = x.IdUsuarioNavigation.Email
+
                 }).ToListAsync();
 
             return usuarios;
@@ -40,8 +45,8 @@ namespace DotTaskAPI.Servicios
 
         public async Task<bool> existeUsuarioProyecto(int proyectoId, int id)
         {
-            var resultado = await context.Usuarios
-                .AnyAsync(x => x.IdProyecto == proyectoId && x.Id == id);
+            var resultado = await context.ProyectosUsuarios
+                .AnyAsync(x => x.IdProyecto == proyectoId && x.IdUsuario == id);
 
             return resultado;
         }
@@ -69,16 +74,29 @@ namespace DotTaskAPI.Servicios
             return usuario;
         }
 
-        public async Task<Usuario> buscarUsuarioPorProyecto(int proyectoId, int id)
+        public async Task<ProyectosUsuario> buscarUsuarioPorProyecto(int proyectoId, int id)
         {
-            var usuario = await context.Usuarios.FirstOrDefaultAsync(x => x.IdProyecto == proyectoId && x.Id == id);
+            var usuario = await context.ProyectosUsuarios.FirstOrDefaultAsync(x => x.IdProyecto == proyectoId && x.IdUsuario == id);
 
             return usuario;
         }
 
-        public async Task actualizar(Usuario usuario)
+        public async Task<ProyectosUsuario> obtenerProyectosUsuarioPorUsuario(int id)
         {
-            context.Usuarios.Update(usuario);
+            var usuario = await context.ProyectosUsuarios.FirstOrDefaultAsync(x => x.IdUsuario == id);
+
+            return usuario;
+        }
+
+        public async Task guardar(ProyectosUsuario proyectosUsuario)
+        {
+            context.ProyectosUsuarios.Add(proyectosUsuario);
+            await context.SaveChangesAsync();
+        }
+
+        public async Task eliminar(ProyectosUsuario proyectosUsuario)
+        {
+            context.ProyectosUsuarios.Remove(proyectosUsuario);
             await context.SaveChangesAsync();
         }
 

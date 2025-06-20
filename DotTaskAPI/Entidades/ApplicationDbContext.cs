@@ -17,6 +17,10 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<Proyecto> Proyectos { get; set; }
 
+    public virtual DbSet<ProyectosUsuario> ProyectosUsuarios { get; set; }
+
+    public virtual DbSet<Rol> Rols { get; set; }
+
     public virtual DbSet<Tarea> Tareas { get; set; }
 
     public virtual DbSet<Token> Tokens { get; set; }
@@ -35,7 +39,6 @@ public partial class ApplicationDbContext : DbContext
             entity.Property(e => e.Descripcion)
                 .HasColumnType("text")
                 .HasColumnName("descripcion");
-            entity.Property(e => e.Manager).HasColumnName("manager");
             entity.Property(e => e.NombreCliente)
                 .HasMaxLength(50)
                 .IsUnicode(false)
@@ -44,6 +47,36 @@ public partial class ApplicationDbContext : DbContext
                 .HasMaxLength(200)
                 .IsUnicode(false)
                 .HasColumnName("nombre_proyecto");
+        });
+
+        modelBuilder.Entity<ProyectosUsuario>(entity =>
+        {
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.FechaAsignacion)
+                .HasColumnType("datetime")
+                .HasColumnName("fecha_asignacion");
+            entity.Property(e => e.IdProyecto).HasColumnName("id_proyecto");
+            entity.Property(e => e.IdUsuario).HasColumnName("id_usuario");
+            entity.Property(e => e.IsManager).HasColumnName("is_manager");
+
+            entity.HasOne(d => d.IdProyectoNavigation).WithMany(p => p.ProyectosUsuarios)
+                .HasForeignKey(d => d.IdProyecto)
+                .HasConstraintName("FK_ProyectosUsuarios_Proyectos");
+
+            entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.ProyectosUsuarios)
+                .HasForeignKey(d => d.IdUsuario)
+                .HasConstraintName("FK_ProyectosUsuarios_ProyectosUsuarios");
+        });
+
+        modelBuilder.Entity<Rol>(entity =>
+        {
+            entity.ToTable("Rol");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("nombre");
         });
 
         modelBuilder.Entity<Tarea>(entity =>
@@ -98,7 +131,7 @@ public partial class ApplicationDbContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("email");
-            entity.Property(e => e.IdProyecto).HasColumnName("id_proyecto");
+            entity.Property(e => e.IdRol).HasColumnName("id_rol");
             entity.Property(e => e.Nombre)
                 .HasMaxLength(100)
                 .IsUnicode(false)
@@ -107,9 +140,9 @@ public partial class ApplicationDbContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("password");
 
-            entity.HasOne(d => d.IdProyectoNavigation).WithMany(p => p.Team)
-                .HasForeignKey(d => d.IdProyecto)
-                .HasConstraintName("FK_Usuario_Proyecto");
+            entity.HasOne(d => d.IdRolNavigation).WithMany(p => p.Usuarios)
+                .HasForeignKey(d => d.IdRol)
+                .HasConstraintName("FK_Usuario_Usuario_rol");
         });
 
         OnModelCreatingPartial(modelBuilder);
