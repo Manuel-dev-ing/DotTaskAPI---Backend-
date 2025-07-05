@@ -133,8 +133,6 @@ namespace DotTaskAPI.Controllers
 
         }
 
-      
-
 
         [HttpDelete("{id:int}")]
         [Authorize]
@@ -145,9 +143,9 @@ namespace DotTaskAPI.Controllers
                 return BadRequest($"El id: {id} no valido");
             }
 
-            var proyectoDTO = await repositorioProyectos.ObtenerProyectoPorId(id);
+            var proyecto = await repositorioProyectos.obtenerProyecto(id);
 
-            if (proyectoDTO is null)
+            if (proyecto is null)
             {
                 return BadRequest($"El proyecto con el id: {id} no existe");
             }
@@ -162,17 +160,26 @@ namespace DotTaskAPI.Controllers
                 return NotFound("Solo el manager puede eliminar un proyecto");
             }
 
-            var resultado = await repositorioProyectos.eliminarProyecto(id);
+            var existe = await repositorioProyectos.existeProyecto(id);
 
+            if (!existe)
+            {
+                return NotFound("El proyecto no ha sido creado");
 
-            if (resultado > 0)
-            {
-                return NoContent();
             }
-            else
+
+            var proyecto_usuario = await repositorioProyectos.ObtenerProyectosUsuario(id);
+            if (proyecto_usuario == null)
             {
-                return NotFound();
+                return NotFound("El proyecto no existe");
+
             }
+
+            await repositorioProyectos.eliminarProyectoUsuario(proyecto_usuario);
+
+            //await repositorioProyectos.eliminarProyecto(proyecto);
+
+            return NoContent();
 
         }
 

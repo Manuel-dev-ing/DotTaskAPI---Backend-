@@ -252,7 +252,78 @@ namespace DotTaskAPI.Controllers
             await repositorioToken.actualizar(Token);
 
             return Ok("El password se modifico correctamente.");
-        }   
+        }
+
+
+        //Profile
+        [HttpPut("actualizar-perfil")]
+        [Authorize]
+        public async Task<ActionResult> actualizarPerfil(PerfilDTO perfilDTO)
+        {
+            var user_auth = await repositorioUsuarios.obtenerInformacionJWT();
+
+            var id_user_auth = int.Parse(user_auth!);
+
+            var existe_usuario = await repositorioUsuarios.existeUsuarioPorCorreo(perfilDTO.Email);
+
+            var usuario = await repositorioUsuarios.obtenerUsuarioPorCorreo(perfilDTO.Email);
+            if (existe_usuario && usuario.Id != id_user_auth)
+            {
+                return BadRequest("El email ya esta registrado");
+            }
+
+            usuario.Nombre = perfilDTO.Nombre;
+            usuario.Email = perfilDTO.Email;
+
+            await repositorioUsuarios.actualizar(usuario);
+
+            return NoContent();
+
+        }
+
+        [HttpPost("actualizar-password-actual")]
+        [Authorize]
+        public async Task<ActionResult> actualizarPasswordActual(ActualizarPasswordDTO passwordDTO)
+        {
+
+            var user_auth = await repositorioUsuarios.obtenerInformacionJWT();
+
+            var id_user_auth = int.Parse(user_auth!);
+
+            var usuario = await repositorioUsuarios.obtenerUsuarioId(id_user_auth);
+
+            if (!VerifyPassword(passwordDTO.Current_Password, usuario.Password))
+            {
+                return Unauthorized("El Password actual es incorrecto");
+            }
+
+            usuario.Password = hashPassword(passwordDTO.Password);
+
+            await repositorioUsuarios.actualizar(usuario);
+
+            return NoContent();
+        }
+
+        //verificar password
+        [HttpPost("verificar-password")]
+        public async Task<ActionResult> verificarPassword(VerificarPasswordDTO passwordDTO)
+        {
+
+            var user_auth = await repositorioUsuarios.obtenerInformacionJWT();
+
+            var id_user_auth = int.Parse(user_auth!);
+
+            var usuario = await repositorioUsuarios.obtenerUsuarioId(id_user_auth);
+
+            if (!VerifyPassword(passwordDTO.Password, usuario.Password))
+            {
+                return Unauthorized("El Password actual es incorrecto");
+            }
+
+
+            return Ok("Password Correcto");
+        }
+
 
         //utilidades
         private async void enviarEmail(int token, Usuario usuario)

@@ -3,17 +3,22 @@ using DotTaskAPI.Entidades;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 namespace DotTaskAPI.Servicios
 {
     public interface IRepositorioProyectos
     {
         Task actualizarProyecto(Proyecto proyecto);
-        Task<int> eliminarProyecto(int id);
+        Task eliminarProyecto(Proyecto proyecto);
+        Task eliminarProyectoUsuario(ProyectosUsuario proyectosUsuario);
+        Task<bool> existeProyecto(int id);
         Task<ProyectoDTO> guardarProyecto(Proyecto proyecto);
+        Task<Proyecto> obtenerProyecto(int id);
         Task<ProyectoDTO> ObtenerProyectoIdManager(int id, int manager_id);
         Task<ProyectoDTO> ObtenerProyectoPorId(int id);
         Task<IEnumerable<ProyectoDTO>> obtenerProyectos(int manager);
+        Task<ProyectosUsuario> ObtenerProyectosUsuario(int id);
     }
 
     public class RepositorioProyectos : IRepositorioProyectos
@@ -23,6 +28,22 @@ namespace DotTaskAPI.Servicios
         public RepositorioProyectos(ApplicationDbContext context)
         {
             this.context = context;
+        }
+
+        public async Task<Proyecto> obtenerProyecto(int id)
+        {
+            var proyecto = await context.Proyectos
+                            .Include(x => x.Tareas)
+                                .ThenInclude(t => t.Nota)
+                            .FirstOrDefaultAsync(x => x.Id == id);
+            return proyecto;
+        }
+
+        public async Task<bool> existeProyecto(int id)
+        {
+            var existe = await context.ProyectosUsuarios.AnyAsync(x => x.IdProyecto == id);
+
+            return existe;
         }
 
         public async Task<IEnumerable<ProyectoDTO>> obtenerProyectos(int manager)
@@ -150,11 +171,41 @@ namespace DotTaskAPI.Servicios
             await context.SaveChangesAsync();
         }
 
-        public async Task<int> eliminarProyecto(int id)
+        public async Task eliminarProyecto(Proyecto proyecto)
         {
-            var resultado = await context.Proyectos.Where(x => x.Id == id).ExecuteDeleteAsync();
+            context.Proyectos.Remove(proyecto);
+            await context.SaveChangesAsync();
+        
+        }
 
-            return resultado;
+        public async Task<ProyectosUsuario> ObtenerProyectosUsuario(int id)
+        {
+            var proyecto_usuario = await context.ProyectosUsuarios
+                .Include(x => x.IdProyectoNavigation)
+                    .ThenInclude(t => t.Tareas)
+                        .ThenInclude(n => n.Nota)
+                .FirstOrDefaultAsync(x => x.IdProyecto == id);
+
+            return proyecto_usuario;
+        } 
+
+
+        public async Task eliminarProyectoUsuario(ProyectosUsuario proyectosUsuario)
+        {
+         
+            foreach (var tarea in proyectosUsuario.IdProyectoNavigation.Tareas)
+            {
+                context.Notas.RemoveRange(tarea.Nota);
+            }
+
+            context.Tareas.RemoveRange(proyectosUsuario.IdProyectoNavigation.Tareas);
+            context.Proyectos.Remove(proyectosUsuario.IdProyectoNavigation);
+            context.ProyectosUsuarios.Remove(proyectosUsuario);
+
+
+            await context.SaveChangesAsync();
+
+
         }
 
 
