@@ -7,10 +7,12 @@ namespace DotTaskAPI.Servicios
     public interface IRepositorioTareas
     {
         Task actualizarTarea(Tarea tarea);
-        Task<int> eliminarTarea(int id);
+        Task eliminarTarea(Tarea tarea);
         Task<bool> existeProyecto(int IdProyecto);
         Task<bool> existeTarea(int id);
+        Task guardarCambios();
         Task guardarTarea(Tarea tarea);
+        Task<Tarea> obtenerTarea(int id);
         Task<List<TareaDTO>> obtienerTareas();
         Task<TareaDTO> obtieneTareaPorId(int id);
     }
@@ -24,9 +26,20 @@ namespace DotTaskAPI.Servicios
             this.context = context;
         }
 
+        public async Task<Tarea> obtenerTarea(int id)
+        {
+            var tarea = await context.Tareas
+                .Include(x => x.Nota)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            return tarea;
+        }
+
         public async Task<TareaDTO> obtieneTareaPorId(int id)
         {
             var tareaDTO = await context.Tareas
+                .Include(x => x.CompletadoPorNavigation)
+                .Include(x => x.HistorialCambiosTareas)
                 .Select(x => new TareaDTO()
                 {
                     Id = x.Id,
@@ -34,7 +47,24 @@ namespace DotTaskAPI.Servicios
                     Nombre = x.Nombre,
                     Descripcion = x.Descripcion,
                     Estado = x.Estado,
-                    IdProyectoNavigation = x.IdProyectoNavigation
+                    CompletadoPor = x.CompletadoPor,
+                    IdUsuario = x.CompletadoPorNavigation.Id,
+                    NombreUsuario = x.CompletadoPorNavigation.Nombre,
+                    EmailUsuario = x.CompletadoPorNavigation.Email,
+                    HistorialCambiosTareas = x.HistorialCambiosTareas,
+                    Notas = x.Nota.Select(x => new NotaDTO()
+                    {
+                        Id = x.Id, 
+                        IdTarea = (int)x.IdTarea, 
+                        Contenido = x.Contenido,
+                        CreadoPor = (int)x.CreadoPor,
+                        NotaCreadoPor = new CreadoPorDTO()
+                        {
+                            Id = x.CreadoPorNavigation.Id,
+                            Nombre = x.CreadoPorNavigation.Nombre,
+                            Email = x.CreadoPorNavigation.Email
+                        }
+                    }).ToList()
 
                 }).FirstOrDefaultAsync(x => x.Id == id);
 
@@ -81,15 +111,18 @@ namespace DotTaskAPI.Servicios
         public async Task actualizarTarea(Tarea tarea)
         {
             context.Tareas.Update(tarea);
+        }
+
+        public async Task guardarCambios()
+        {
             await context.SaveChangesAsync();
         }
 
-        public async Task<int> eliminarTarea(int id)
+
+
+        public async Task eliminarTarea(Tarea tarea)
         {
-
-            var resultado = await context.Tareas.Where(x => x.Id == id).ExecuteDeleteAsync();
-
-            return resultado;
+            context.Tareas.Remove(tarea);
         }
 
 

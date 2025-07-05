@@ -34,18 +34,17 @@ namespace DotTaskAPI.Servicios
             var nameIdentifier = contextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var Id = int.Parse(nameIdentifier!);
 
-            var Name = contextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-
-            var Email = contextAccessor.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
-
-            var Rol = contextAccessor.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            var user = await context.Usuarios
+                .Include(x => x.IdRolNavigation)
+                .FirstOrDefaultAsync(x => x.Id == Id);
+           
 
             var usuario = new UsuarioAutenticadoDTO()
             {
                 Id = Id,
-                Rol = Rol,
-                Nombre = Name,
-                Email = Email
+                Rol = user.IdRolNavigation.Nombre,
+                Nombre = user.Nombre,
+                Email = user.Email
             };
 
             return usuario;

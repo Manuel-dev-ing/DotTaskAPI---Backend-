@@ -11,10 +11,16 @@ namespace DotTaskAPI.Controllers
     public class TareasController : ControllerBase
     {
         private readonly IRepositorioTareas repositorioTareas;
+        private readonly IRepositorioUsuarios repositorioUsuarios;
+        private readonly IRepositorioHistorialCambios repositorioHistorialCambios;
+        private readonly IRepositorioNotas repositorioNotas;
 
-        public TareasController(IRepositorioTareas repositorioTareas)
+        public TareasController(IRepositorioTareas repositorioTareas, IRepositorioUsuarios repositorioUsuarios, IRepositorioHistorialCambios repositorioHistorialCambios, IRepositorioNotas repositorioNotas)
         {
             this.repositorioTareas = repositorioTareas;
+            this.repositorioUsuarios = repositorioUsuarios;
+            this.repositorioHistorialCambios = repositorioHistorialCambios;
+            this.repositorioNotas = repositorioNotas;
         }
 
 
@@ -49,23 +55,25 @@ namespace DotTaskAPI.Controllers
 
             var tarea_resultado = await repositorioTareas.obtieneTareaPorId(id);
 
+            if (tarea_resultado is null)
+            {
+                return NotFound();
+            }
+
             if (proyectoId != tarea_resultado.IdProyecto)
             {
                 return BadRequest();
             }
 
-            var tarea = await repositorioTareas.obtieneTareaPorId(id);
+            //var tarea = await repositorioTareas.obtieneTareaPorId(id);
 
-            if (tarea is null)
-            {
-                return NotFound();
-            }
+           
 
-            return tarea;
+            return tarea_resultado;
         }
 
         [HttpPost]
-        [Authorize(Roles = "manager")]
+        [Authorize]
         public async Task<ActionResult> post(int proyectoId, TareaCreacionDTO tareaCreacionDTO)
         {
             var entidad = await repositorioTareas.existeProyecto(proyectoId);
@@ -138,10 +146,12 @@ namespace DotTaskAPI.Controllers
 
 
         [HttpPut("{id:int}/status")]
-        [Authorize(Roles = "manager")]
-
+        [Authorize]    
         public async Task<ActionResult> status(int id, int proyectoId, [FromBody] StatusDTO statusDTO)
         {
+            var manager = await repositorioUsuarios.obtenerInformacionJWT();
+            var manager_id = int.Parse(manager!);
+
             if (id <= 0)
             {
                 return BadRequest($"El id: {id} no valido");
@@ -161,17 +171,40 @@ namespace DotTaskAPI.Controllers
                 return BadRequest();
             }
 
+            if (statusDTO.Status == "pending")
+            {
+                tarea_resultado.CompletadoPor = null;
+            }
+            else
+            {
+                tarea_resultado.CompletadoPor = manager_id;
+
+            }
+
             var tarea = new Tarea()
             {
                 Id = id,
                 IdProyecto = proyectoId,
                 Nombre = tarea_resultado.Nombre,
                 Descripcion = tarea_resultado.Descripcion,
-                Estado = statusDTO.Status
+                Estado = statusDTO.Status,
+                CompletadoPor = tarea_resultado.CompletadoPor
             };
 
             await repositorioTareas.actualizarTarea(tarea);
 
+            var historial = new HistorialCambiosTarea()
+            {
+                IdTarea = tarea.Id,
+                Status = tarea.Estado,
+                NombreUsuario = tarea_resultado.NombreUsuario,
+                Fecha = DateTime.Now
+            };
+
+            await repositorioHistorialCambios.guardar(historial);
+
+            await repositorioTareas.guardarCambios();
+            
             return NoContent();
         }
 
@@ -187,6 +220,13 @@ namespace DotTaskAPI.Controllers
             {
                 return NotFound();
             }
+
+            var tarea = await repositorioTareas.obtenerTarea(id);
+            if (tarea == null)
+            {
+                return NotFound();
+            }
+
             var tarea_resultado = await repositorioTareas.obtieneTareaPorId(id);
 
             if (proyectoId != tarea_resultado.IdProyecto)
@@ -194,13 +234,15 @@ namespace DotTaskAPI.Controllers
                 return BadRequest();
             }
 
-
-            var resultado = await repositorioTareas.eliminarTarea(id);
-
-            if (resultado == 0)
+            var nota = await repositorioNotas.obtenerNotaPorIdTarea(tarea.Id);
+            if (nota != null)
             {
-                return NotFound();
+                await repositorioNotas.eliminar(nota);
             }
+
+            repositorioTareas.eliminarTarea(tarea);
+
+            await repositorioTareas.guardarCambios();
 
             return NoContent();
         }

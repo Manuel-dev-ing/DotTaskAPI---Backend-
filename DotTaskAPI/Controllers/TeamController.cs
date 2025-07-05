@@ -62,6 +62,7 @@ namespace DotTaskAPI.Controllers
             {
                 IdProyecto = proyectoId,
                 IdUsuario = id.Id,
+                IsManager = false,
                 FechaAsignacion = DateTime.Now
             };
 

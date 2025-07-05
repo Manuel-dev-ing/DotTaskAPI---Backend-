@@ -19,7 +19,11 @@ public partial class Usuario
 
     public virtual Rol? IdRolNavigation { get; set; }
 
+    public virtual ICollection<Nota> Nota { get; set; } = new List<Nota>();
+
     public virtual ICollection<ProyectosUsuario> ProyectosUsuarios { get; set; } = new List<ProyectosUsuario>();
+
+    public virtual ICollection<Tarea> Tareas { get; set; } = new List<Tarea>();
 
     public virtual ICollection<Token> Tokens { get; set; } = new List<Token>();
 }
