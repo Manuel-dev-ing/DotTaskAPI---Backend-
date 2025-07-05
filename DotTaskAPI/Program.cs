@@ -19,10 +19,12 @@ builder.Services.AddTransient<IRepositorioUsuarios, RepositorioUsuarios>();
 builder.Services.AddTransient<IRepositorioToken, RepositorioToken>();
 builder.Services.AddTransient<IServicioEmail, ServicioEmail>();
 builder.Services.AddTransient<IRepositorioTeam, RepositorioTeam>();
+builder.Services.AddTransient<IRepositorioHistorialCambios, RepositorioHistorialCambios>();
+builder.Services.AddTransient<IRepositorioNotas, RepositorioNotas>();
 builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
 
-
 builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     options.MapInboundClaims = false;
@@ -56,9 +58,6 @@ builder.Services.AddCors(options =>
 
     });
 });
-
-
-
 
 var app = builder.Build();
 

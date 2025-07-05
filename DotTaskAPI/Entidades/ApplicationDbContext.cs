@@ -15,6 +15,10 @@ public partial class ApplicationDbContext : DbContext
     {
     }
 
+    public virtual DbSet<HistorialCambiosTarea> HistorialCambiosTareas { get; set; }
+
+    public virtual DbSet<Nota> Notas { get; set; }
+
     public virtual DbSet<Proyecto> Proyectos { get; set; }
 
     public virtual DbSet<ProyectosUsuario> ProyectosUsuarios { get; set; }
@@ -33,6 +37,48 @@ public partial class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<HistorialCambiosTarea>(entity =>
+        {
+            entity.ToTable("HistorialCambiosTarea");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Fecha)
+                .HasColumnType("datetime")
+                .HasColumnName("fecha");
+            entity.Property(e => e.IdTarea).HasColumnName("id_tarea");
+            entity.Property(e => e.NombreUsuario)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("nombre_usuario");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("status");
+
+            entity.HasOne(d => d.IdTareaNavigation).WithMany(p => p.HistorialCambiosTareas)
+                .HasForeignKey(d => d.IdTarea)
+                .HasConstraintName("FK_HistorialCambiosTarea_Tareas");
+        });
+
+        modelBuilder.Entity<Nota>(entity =>
+        {
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Contenido)
+                .IsUnicode(false)
+                .HasColumnName("contenido");
+            entity.Property(e => e.CreadoPor).HasColumnName("creado_por");
+            entity.Property(e => e.IdTarea).HasColumnName("id_tarea");
+
+            entity.HasOne(d => d.CreadoPorNavigation).WithMany(p => p.Nota)
+                .HasForeignKey(d => d.CreadoPor)
+                .HasConstraintName("FK_Notas_Usuario");
+
+            entity.HasOne(d => d.IdTareaNavigation).WithMany(p => p.Nota)
+                .HasForeignKey(d => d.IdTarea)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Notas_Tareas");
+        });
+
         modelBuilder.Entity<Proyecto>(entity =>
         {
             entity.Property(e => e.Id).HasColumnName("id");
@@ -61,6 +107,7 @@ public partial class ApplicationDbContext : DbContext
 
             entity.HasOne(d => d.IdProyectoNavigation).WithMany(p => p.ProyectosUsuarios)
                 .HasForeignKey(d => d.IdProyecto)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_ProyectosUsuarios_Proyectos");
 
             entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.ProyectosUsuarios)
@@ -82,6 +129,7 @@ public partial class ApplicationDbContext : DbContext
         modelBuilder.Entity<Tarea>(entity =>
         {
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CompletadoPor).HasColumnName("completado_por");
             entity.Property(e => e.Descripcion)
                 .HasColumnType("text")
                 .HasColumnName("descripcion");
@@ -95,8 +143,13 @@ public partial class ApplicationDbContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("nombre");
 
+            entity.HasOne(d => d.CompletadoPorNavigation).WithMany(p => p.Tareas)
+                .HasForeignKey(d => d.CompletadoPor)
+                .HasConstraintName("FK_Tareas_usuarios");
+
             entity.HasOne(d => d.IdProyectoNavigation).WithMany(p => p.Tareas)
                 .HasForeignKey(d => d.IdProyecto)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_Tareas_Proyectos");
         });
 
